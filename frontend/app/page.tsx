@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 
-import { Product, searchProducts } from "@/lib/api";
+import { Product, searchProducts, searchProductsByImage } from "@/lib/api";
 
 const rupees = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -51,6 +51,9 @@ export default function Home() {
   const [isVoiceSupported, setIsVoiceSupported] = useState<boolean | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [voiceError, setVoiceError] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState("");
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsVoiceSupported(Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
@@ -61,6 +64,7 @@ export default function Home() {
 
     setIsLoading(true);
     setError("");
+    setScanMessage("");
     setHasSearched(true);
     try {
       setProducts(await searchProducts(searchQuery, 10));
@@ -114,6 +118,27 @@ export default function Home() {
     }
   }
 
+  async function handleImageSelected(event: ChangeEvent<HTMLInputElement>) {
+    const image = event.target.files?.[0];
+    event.target.value = "";
+    if (!image) return;
+
+    setIsScanning(true);
+    setError("");
+    setScanMessage("");
+    setHasSearched(true);
+    try {
+      const response = await searchProductsByImage(image);
+      setProducts(response.products);
+      setScanMessage(response.message ?? "");
+    } catch {
+      setProducts([]);
+      setError("Could not scan that image. Please make sure the backend is running.");
+    } finally {
+      setIsScanning(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-6xl">
@@ -138,11 +163,20 @@ export default function Home() {
             className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none ring-blue-500 transition focus:ring-2"
             aria-label="Search products"
           />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleImageSelected}
+            className="hidden"
+            aria-label="Take or select a product image"
+          />
           {isVoiceSupported && (
             <button
               type="button"
               onClick={startVoiceSearch}
-              disabled={isLoading || isListening}
+              disabled={isLoading || isListening || isScanning}
               className="rounded-lg border border-blue-700 px-4 py-3 font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
               aria-label="Search with voice"
               aria-pressed={isListening}
@@ -152,8 +186,21 @@ export default function Home() {
             </button>
           )}
           <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={isLoading || isListening || isScanning}
+            className="rounded-lg border border-blue-700 px-4 py-3 font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
+            aria-label="Search with camera"
+            title="Search with camera"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2">
+              <path d="M4 7h3l1.5-2h7L17 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+          </button>
+          <button
             type="submit"
-            disabled={isLoading || !query.trim()}
+            disabled={isLoading || isScanning || !query.trim()}
             className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {isLoading ? "Searching..." : "Search"}
@@ -170,6 +217,13 @@ export default function Home() {
           <p className="mb-3 text-sm text-slate-500">Voice search not supported in this browser.</p>
         )}
         {voiceError && <p role="alert" className="mb-3 text-sm text-red-700">{voiceError}</p>}
+        {isScanning && (
+          <p className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-700">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-blue-700" />
+            Scanning...
+          </p>
+        )}
+        {scanMessage && <p className="mb-3 text-sm text-slate-600">{scanMessage}</p>}
 
         {error && (
           <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
@@ -179,7 +233,7 @@ export default function Home() {
 
         {isLoading && <p className="text-slate-600">Searching products...</p>}
 
-        {!isLoading && hasSearched && !error && products.length === 0 && (
+        {!isLoading && !isScanning && hasSearched && !error && !scanMessage && products.length === 0 && (
           <p className="rounded-lg border border-slate-200 bg-white p-6 text-slate-600">
             No products found
           </p>

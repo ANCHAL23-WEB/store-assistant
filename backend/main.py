@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routes import health, products, search
+from routes import health, ocr, products, search
 
 app = FastAPI(title="Retail Store Assistant API")
 
@@ -18,4 +18,5 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(search.router)
+app.include_router(ocr.router)
 app.include_router(products.router)
