@@ -41,8 +41,8 @@ CREATE TABLE IF NOT EXISTS employees (
 
 CREATE TABLE IF NOT EXISTS usage_events (
     event_id SERIAL PRIMARY KEY,
-    employee_id INTEGER NOT NULL REFERENCES employees(employee_id),
-    product_id INTEGER NOT NULL REFERENCES products(product_id),
+    employee_id INTEGER DEFAULT 1 REFERENCES employees(employee_id),
+    product_id INTEGER REFERENCES products(product_id),
     input_type TEXT NOT NULL CHECK (input_type IN ('camera', 'voice', 'browse')),
     query_text TEXT,
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -62,4 +62,6 @@ CREATE TABLE IF NOT EXISTS price_match_events (
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_store_id ON inventory(store_id);
 CREATE INDEX IF NOT EXISTS idx_usage_events_employee_id ON usage_events(employee_id);
+CREATE INDEX IF NOT EXISTS idx_usage_events_input_type ON usage_events(input_type);
+CREATE INDEX IF NOT EXISTS idx_usage_events_timestamp ON usage_events(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_price_match_events_product_id ON price_match_events(product_id);

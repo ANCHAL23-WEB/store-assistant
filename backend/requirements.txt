@@ -21,3 +21,4 @@ faiss-cpu
 pytesseract
 Pillow
 python-multipart
+pandas

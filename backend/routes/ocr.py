@@ -3,8 +3,12 @@
 from io import BytesIO
 
 import pytesseract
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from PIL import Image, UnidentifiedImageError
+from sqlalchemy.orm import Session
+
+from db import get_db
+from events import log_usage_event
 
 router = APIRouter()
 
@@ -15,6 +19,7 @@ NO_TEXT_MESSAGE = "Couldn't read any text from that image. Try a clearer photo o
 async def search_image(
     image: UploadFile = File(...),
     top_k: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
 ) -> list[dict] | dict:
     """Extract image text with Tesseract and use it to find matching products."""
     try:
@@ -33,12 +38,16 @@ async def search_image(
         ) from error
 
     if not extracted_text:
+        log_usage_event(db, input_type="camera", query_text="", matches=[])
         return {"results": [], "message": NO_TEXT_MESSAGE}
 
     try:
         # Imported lazily so the API can still start before a FAISS index is built.
         from retrieval.search import search_products
 
-        return search_products(extracted_text, top_k)
+        results = search_products(extracted_text, top_k)
+        log_usage_event(db, input_type="camera", query_text=extracted_text, matches=results)
+        return results
     except FileNotFoundError as error:
+        log_usage_event(db, input_type="camera", query_text=extracted_text, matches=[])
         raise HTTPException(status_code=503, detail=str(error)) from error
