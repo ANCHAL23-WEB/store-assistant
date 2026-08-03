@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import { Product, searchProducts } from "@/lib/api";
 
@@ -9,6 +9,34 @@ const rupees = new Intl.NumberFormat("en-IN", {
   currency: "INR",
   maximumFractionDigits: 0,
 });
+
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    [index: number]: {
+      [index: number]: { transcript: string };
+    };
+    length: number;
+  };
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  start: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
 
 function visibleSpecs(specs: Product["specs"]) {
   return Object.entries(specs).slice(0, 3);
@@ -20,22 +48,69 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState("");
+  const [isVoiceSupported, setIsVoiceSupported] = useState<boolean | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
 
-  async function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) return;
+  useEffect(() => {
+    setIsVoiceSupported(Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
+  }, []);
+
+  async function runSearch(searchQuery: string) {
+    if (!searchQuery) return;
 
     setIsLoading(true);
     setError("");
     setHasSearched(true);
     try {
-      setProducts(await searchProducts(trimmedQuery, 10));
+      setProducts(await searchProducts(searchQuery, 10));
     } catch {
       setProducts([]);
       setError("Backend not reachable. Please make sure the API is running.");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedQuery = query.trim();
+    await runSearch(trimmedQuery);
+  }
+
+  function startVoiceSearch() {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setIsVoiceSupported(false);
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-IN";
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      setVoiceError(
+        event.error === "not-allowed" || event.error === "service-not-allowed"
+          ? "Microphone permission was denied. Allow microphone access and try again."
+          : "Voice search could not understand that. Please try again.",
+      );
+    };
+    recognition.onresult = (event) => {
+      const transcript = event.results[event.results.length - 1][0].transcript.trim();
+      setQuery(transcript);
+      void runSearch(transcript);
+    };
+
+    setVoiceError("");
+    setIsListening(true);
+    try {
+      recognition.start();
+    } catch {
+      setIsListening(false);
+      setVoiceError("Voice search could not start. Please try again.");
     }
   }
 
@@ -54,7 +129,7 @@ export default function Home() {
           </p>
         </header>
 
-        <form onSubmit={handleSearch} className="mb-8 flex max-w-2xl gap-3">
+        <form onSubmit={handleSearch} className="mb-3 flex max-w-2xl gap-3">
           <input
             type="search"
             value={query}
@@ -63,6 +138,19 @@ export default function Home() {
             className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none ring-blue-500 transition focus:ring-2"
             aria-label="Search products"
           />
+          {isVoiceSupported && (
+            <button
+              type="button"
+              onClick={startVoiceSearch}
+              disabled={isLoading || isListening}
+              className="rounded-lg border border-blue-700 px-4 py-3 font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400"
+              aria-label="Search with voice"
+              aria-pressed={isListening}
+              title="Search with voice"
+            >
+              <span aria-hidden="true">🎤</span>
+            </button>
+          )}
           <button
             type="submit"
             disabled={isLoading || !query.trim()}
@@ -71,6 +159,17 @@ export default function Home() {
             {isLoading ? "Searching..." : "Search"}
           </button>
         </form>
+
+        {isListening && (
+          <p className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-700">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-blue-700" />
+            Listening...
+          </p>
+        )}
+        {isVoiceSupported === false && (
+          <p className="mb-3 text-sm text-slate-500">Voice search not supported in this browser.</p>
+        )}
+        {voiceError && <p role="alert" className="mb-3 text-sm text-red-700">{voiceError}</p>}
 
         {error && (
           <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
