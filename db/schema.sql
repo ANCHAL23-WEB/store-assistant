@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS products (
     price NUMERIC(12, 2) NOT NULL CHECK (price >= 0),
     colors TEXT[] NOT NULL DEFAULT '{}',
     specs JSONB NOT NULL DEFAULT '{}'::jsonb,
-    image_url TEXT
+    image_url TEXT,
+    barcode TEXT UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS stores (

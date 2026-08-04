@@ -1,6 +1,8 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ChangeEvent, FormEvent, Suspense, useEffect, useRef, useState } from "react";
 
 import { Product, searchProducts, searchProductsByImage } from "@/lib/api";
 
@@ -42,7 +44,10 @@ function visibleSpecs(specs: Product["specs"]) {
   return Object.entries(specs).slice(0, 3);
 }
 
-export default function Home() {
+function SearchPageContent() {
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,10 +59,27 @@ export default function Home() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const hasAutoTriggered = useRef(false);
 
   useEffect(() => {
     setIsVoiceSupported(Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
   }, []);
+
+  // Auto-trigger the relevant input method when arriving from the home screen.
+  useEffect(() => {
+    if (hasAutoTriggered.current) return;
+    hasAutoTriggered.current = true;
+
+    if (mode === "camera") {
+      cameraInputRef.current?.click();
+    } else if (mode === "voice") {
+      startVoiceSearch();
+    } else if (mode === "type") {
+      searchInputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   async function runSearch(searchQuery: string) {
     if (!searchQuery) return;
@@ -143,6 +165,12 @@ export default function Home() {
     <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-900 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <header className="mb-8">
+          <Link
+            href="/"
+            className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline"
+          >
+            ← Back to home
+          </Link>
           <p className="mb-2 text-sm font-semibold tracking-wide text-blue-700 uppercase">
             Retail Store Assistant
           </p>
@@ -156,6 +184,7 @@ export default function Home() {
 
         <form onSubmit={handleSearch} className="mb-3 flex max-w-2xl gap-3">
           <input
+            ref={searchInputRef}
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -242,9 +271,10 @@ export default function Home() {
         {!isLoading && products.length > 0 && (
           <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product) => (
-              <article
+              <Link
                 key={product.product_id}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                href={`/product/${product.product_id}`}
+                className="block overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
               >
                 <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-sm font-medium text-slate-400">
                   Product image
@@ -264,11 +294,19 @@ export default function Home() {
                     ))}
                   </dl>
                 </div>
-              </article>
+              </Link>
             ))}
           </section>
         )}
       </div>
     </main>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-slate-50" />}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

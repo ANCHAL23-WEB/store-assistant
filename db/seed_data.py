@@ -102,6 +102,7 @@ def product_rows(category_ids: dict[str, int]) -> list[tuple]:
             price = Decimal(random.randint(low, high - 1)) + Decimal("0.00")
             product_name = f"{brand} {model} {faker.bothify(text='??-###').upper()}"
             image_slug = product_name.lower().replace(" ", "-")
+            barcode = "890" + str(random.randint(10**9, 10**10 - 1))
             rows.append((
                 product_name,
                 category_ids[category_name],
@@ -110,6 +111,7 @@ def product_rows(category_ids: dict[str, int]) -> list[tuple]:
                 random.sample(COLORS, k=random.randint(1, 3)),
                 Json(details["specs"]()),
                 f"https://placehold.co/600x400?text={image_slug}",
+                barcode,
             ))
     random.shuffle(rows)
     return rows
@@ -143,7 +145,7 @@ def main() -> None:
                 cursor,
                 """
                 INSERT INTO products
-                    (name, category_id, brand, price, colors, specs, image_url)
+                    (name, category_id, brand, price, colors, specs, image_url, barcode)
                 VALUES %s
                 RETURNING product_id
                 """,

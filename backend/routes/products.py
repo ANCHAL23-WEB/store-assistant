@@ -16,6 +16,36 @@ def _product_row(product: Any) -> dict[str, Any]:
     return dict(product._mapping)
 
 
+@router.get("/products/barcode/{barcode}")
+def get_product_by_barcode(barcode: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Look up one product by its scanned barcode, including inventory."""
+    product_query = text("""
+        SELECT p.product_id, p.name, p.category_id, c.name AS category, p.brand,
+               p.price, p.colors, p.specs, p.image_url, p.barcode
+        FROM products AS p
+        JOIN categories AS c ON c.category_id = p.category_id
+        WHERE p.barcode = :barcode
+    """)
+    product = db.execute(product_query, {"barcode": barcode}).first()
+    if product is None:
+        raise HTTPException(status_code=404, detail="No product found for that barcode")
+
+    inventory_query = text("""
+        SELECT i.store_id, s.name AS store_name, s.location, s.city,
+               i.stock_qty, i.restock_eta_days
+        FROM inventory AS i
+        JOIN stores AS s ON s.store_id = i.store_id
+        WHERE i.product_id = :product_id
+        ORDER BY s.name
+    """)
+    result = _product_row(product)
+    result["inventory"] = [
+        dict(row._mapping)
+        for row in db.execute(inventory_query, {"product_id": result["product_id"]}).all()
+    ]
+    return result
+
+
 @router.get("/products/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Fetch one product and its inventory records across all stores."""
