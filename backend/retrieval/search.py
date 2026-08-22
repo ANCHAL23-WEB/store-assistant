@@ -19,6 +19,10 @@ INDEX_PATH = RETRIEVAL_DIR / "product_index.faiss"
 PRODUCT_IDS_PATH = RETRIEVAL_DIR / "product_ids.json"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
+# Maximum acceptable L2 distance for a match to be considered relevant.
+# Lower = stricter (fewer, more relevant results). Tune based on testing.
+MAX_DISTANCE = 1.2
+
 
 def _load_database_url() -> str:
     load_dotenv(PROJECT_ROOT / ".env")
@@ -65,7 +69,12 @@ def _fetch_products(product_ids: list[int]) -> dict[int, dict[str, Any]]:
 
 
 def search_products(query: str, top_k: int = 5) -> list[dict[str, Any]]:
-    """Return nearest products with their squared L2 distance scores."""
+    """Return nearest products with their squared L2 distance scores.
+
+    Results whose distance exceeds MAX_DISTANCE are dropped, since a bad
+    match (e.g. searching for something not in the catalog) is worse than
+    no match at all.
+    """
     if not query or not query.strip() or top_k < 1:
         return []
 
@@ -82,6 +91,8 @@ def search_products(query: str, top_k: int = 5) -> list[dict[str, Any]]:
     results = []
     for distance, position in zip(distances[0], positions[0]):
         if position == -1:
+            continue
+        if float(distance) > MAX_DISTANCE:
             continue
         product_id = PRODUCT_IDS[position]
         product = products.get(product_id)

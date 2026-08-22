@@ -89,6 +89,14 @@ export default function ProductDetailPage() {
 
         {product && (
           <>
+            {product.image_url && (
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="mb-6 h-64 w-full rounded-2xl border border-slate-200 object-cover sm:h-80"
+              />
+            )}
+
             <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-blue-700">
               {product.brand} · {product.category}
             </p>
