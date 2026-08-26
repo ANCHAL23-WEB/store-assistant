@@ -21,6 +21,14 @@ A full-stack retail electronics store assistant designed for non-technical users
 |---|---|
 | ![Scan](03-scan-voice.jpeg) | ![Dashboard](04-dashboard-top.jpeg) |
 
+**Barcode Scan:**
+
+![Barcode Scan](03-bar-code.jpeg)
+
+**Dashboard (more views):**
+
+![Dashboard Charts](04-dashboard-charts.jpeg)
+
 ## Tech Stack
 
 | Layer | Technology |
