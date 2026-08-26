@@ -20,7 +20,11 @@
 3. Decision logged to price_match_events
 4. Result returned to frontend
 
+> **Note:** The 15% max discount floor is a simulated business rule for demonstration purposes — not derived from live competitor pricing APIs. It represents a plausible upper bound a retailer might enforce to prevent unsustainable discounting.
+
+
 ## Analytics Flow
+
 1. Streamlit dashboard queries usage_events + price_match_events directly via pandas
 2. Renders charts: top products, top searches, input method breakdown, searches over time, zero-result searches
 3. Used for business decisions (what customers search for, what's not in stock, what features they want)
