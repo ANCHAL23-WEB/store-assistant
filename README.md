@@ -12,6 +12,17 @@ A full-stack retail electronics store assistant designed for non-technical users
 - **Analytics dashboard** — a Streamlit dashboard tracks top searched/purchased products, input method usage (scan/speak/type), and zero-result searches, to support real business decisions
 - **Grandmother-friendly UI** — large buttons, minimal text, built for non-technical users
 
+ ## Screenshots
+
+| Homepage | Search & Results |
+|---|---|
+| ![Homepage](docs/screenshots/01-homepage.jpeg) | ![Search Results](docs/screenshots/02-search-results.jpeg) |
+
+| Scan / Voice | Analytics Dashboard |
+|---|---|
+| ![Scan](docs/screenshots/03-scan-voice.jpeg) | ![Dashboard](docs/screenshots/04-dashboard-top.jpeg) |
+
+
 ## Tech Stack
 
 | Layer | Technology |
