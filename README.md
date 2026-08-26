@@ -16,12 +16,10 @@ A full-stack retail electronics store assistant designed for non-technical users
 
 | Homepage | Search & Results |
 |---|---|
-| ![Homepage](docs/screenshots/01-homepage.jpeg) | ![Search Results](docs/screenshots/02-search-results.jpeg) |
-
+| ![Homepage](01-homepage.jpeg) | ![Search Results](02-search-results.jpeg) |
 | Scan / Voice | Analytics Dashboard |
 |---|---|
-| ![Scan](docs/screenshots/03-scan-voice.jpeg) | ![Dashboard](docs/screenshots/04-dashboard-top.jpeg) |
-
+| ![Scan](03-scan-voice.jpeg) | ![Dashboard](04-dashboard-top.jpeg) |
 
 ## Tech Stack
 
