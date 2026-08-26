@@ -30,6 +30,11 @@ A full-stack retail electronics store assistant designed for non-technical users
 
 ![Dashboard Charts](04-dashboard-charts.jpeg)
 
+
+### Business Insight Example
+
+Out of 26 tracked searches, "phone" and "laptop" were the most searched terms (5 each), followed by "washing machine" (4) — indicating strong customer interest in electronics and appliances. Zero-result searches were 0% in this sample, suggesting the semantic search successfully matches customer queries to catalog items even with varied phrasing.
+
 ## Tech Stack
 
 | Layer | Technology |
