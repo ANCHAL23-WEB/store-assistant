@@ -35,6 +35,21 @@ A full-stack retail electronics store assistant designed for non-technical users
 
 Out of 26 tracked searches, "phone" and "laptop" were the most searched terms (5 each), followed by "washing machine" (4) — indicating strong customer interest in electronics and appliances. Zero-result searches were 0% in this sample, suggesting the semantic search successfully matches customer queries to catalog items even with varied phrasing.
 
+
+## Search Evaluation
+
+To validate the retrieval approach, three search methods were benchmarked against 40 labeled test queries (relevance defined by rule-based keyword matching against product specs — see `eval/test_queries.json` for methodology).
+
+| Method | Precision@5 | Recall@5 | MRR | Avg Latency |
+|---|---|---|---|---|
+| Keyword Search | 0.96 | 0.031 | 0.975 | 3.1 ms |
+| TF-IDF | 0.90 | 0.029 | 0.90 | 1.3 ms |
+| FAISS + Embeddings | 0.85 | 0.024 | 0.87 | 55.4 ms |
+
+**Note:** Keyword and TF-IDF score higher here because the ground-truth labels were themselves keyword-based, which favors exact-match methods. In practice, FAISS + embeddings is more robust to loose or imprecise phrasing (e.g. "phone with good camera" vs. exact spec terms), which keyword/TF-IDF methods cannot handle — a strength this keyword-based evaluation doesn't fully capture. Low recall across all methods reflects a large candidate pool per query relative to top-5 retrieval depth.
+
+Run the evaluation yourself: `python -m eval.evaluate_search` (from project root).
+
 ## Tech Stack
 
 | Layer | Technology |
