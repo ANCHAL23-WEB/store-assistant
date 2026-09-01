@@ -50,6 +50,21 @@ To validate the retrieval approach, three search methods were benchmarked agains
 
 Run the evaluation yourself: `python -m eval.evaluate_search` (from project root).
 
+
+## Performance & Scalability
+
+Latency was benchmarked at increasing catalog sizes to test how each stage of the search pipeline scales.
+
+| Catalog Size | Query Embedding | FAISS Search | DB Fetch | Total (end-to-end) |
+|---|---|---|---|---|
+| 5,000 | 13.16 ms | 0.70 ms | 47.70 ms | 61.57 ms |
+| 10,000 | 10.92 ms | 0.66 ms | 38.46 ms | 50.04 ms |
+| 50,000 | 27.37 ms | 13.46 ms | 69.65 ms | 110.47 ms |
+
+**Findings:** DB fetch dominates latency at smaller scales (up to 77%), while FAISS search time grows roughly linearly with catalog size (expected for `IndexFlatL2`, which does a brute-force scan). Even at 50,000 products — 10x the current catalog — end-to-end search stays under 120ms, well within acceptable UX limits for a search-as-you-type experience.
+
+Run this benchmark yourself: `python -m eval.benchmark_performance`
+
 ## Tech Stack
 
 | Layer | Technology |
