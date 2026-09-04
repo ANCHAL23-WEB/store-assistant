@@ -35,3 +35,11 @@
 - Reusable logic (search, price-match) stays in separate modules, not duplicated in route files
 - AI/search logic isolated in backend/retrieval/ — swappable without touching routes
 - Dashboard uses plain Python charts (Streamlit/matplotlib), not Tableau-style tools
+
+  
+## Security
+
+- **Environment variables:** Database credentials and secrets are stored in `.env` files (excluded from git via `.gitignore`), never hardcoded in source.
+- **SQL injection protection:** All database queries use parameterized statements via `psycopg2` (e.g. `cursor.execute(query, (params,))`), never raw string interpolation — confirmed across `search.py`, `price_match.py`, and all route handlers.
+- **Input validation:** FastAPI's Pydantic models validate and type-check all incoming request bodies before processing.
+- **CORS (current limitation):** CORS is currently open (`allow_origins=["*"]`) to simplify local frontend/backend integration during development. This should be restricted to the deployed frontend's specific origin before any public/production use — noted as a to-do for the deployment phase.
