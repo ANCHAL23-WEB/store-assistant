@@ -9,15 +9,15 @@ import faiss
 import numpy as np
 import psycopg2
 from dotenv import load_dotenv
+from fastembed import TextEmbedding
 from psycopg2.extras import RealDictCursor
-from sentence_transformers import SentenceTransformer
 
 RETRIEVAL_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = RETRIEVAL_DIR.parent
 PROJECT_ROOT = BACKEND_DIR.parent
 INDEX_PATH = RETRIEVAL_DIR / "product_index.faiss"
 PRODUCT_IDS_PATH = RETRIEVAL_DIR / "product_ids.json"
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 
 def _load_database_url() -> str:
@@ -73,8 +73,8 @@ def main() -> None:
         raise RuntimeError("No products found. Add products before building the retrieval index.")
 
     descriptions = [build_product_description(product) for product in products]
-    model = SentenceTransformer(MODEL_NAME)
-    embeddings = model.encode(descriptions, convert_to_numpy=True, show_progress_bar=True)
+    model = TextEmbedding(model_name=MODEL_NAME)
+    embeddings = np.array(list(model.embed(descriptions)))
     embeddings = np.ascontiguousarray(embeddings, dtype=np.float32)
 
     index = faiss.IndexFlatL2(embeddings.shape[1])

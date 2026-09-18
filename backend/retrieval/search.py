@@ -9,15 +9,15 @@ import faiss
 import numpy as np
 import psycopg2
 from dotenv import load_dotenv
+from fastembed import TextEmbedding
 from psycopg2.extras import RealDictCursor
-from sentence_transformers import SentenceTransformer
 
 RETRIEVAL_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = RETRIEVAL_DIR.parent
 PROJECT_ROOT = BACKEND_DIR.parent
 INDEX_PATH = RETRIEVAL_DIR / "product_index.faiss"
 PRODUCT_IDS_PATH = RETRIEVAL_DIR / "product_ids.json"
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Maximum acceptable L2 distance for a match to be considered relevant.
 # Lower = stricter (fewer, more relevant results). Tune based on testing.
@@ -49,7 +49,7 @@ def _load_index() -> tuple[faiss.Index, list[int]]:
 
 # Load model and persisted artifacts once, when this module is imported.
 INDEX, PRODUCT_IDS = _load_index()
-MODEL = SentenceTransformer(MODEL_NAME)
+MODEL = TextEmbedding(model_name=MODEL_NAME)
 
 
 def _fetch_products(product_ids: list[int]) -> dict[int, dict[str, Any]]:
@@ -82,7 +82,7 @@ def search_products(query: str, top_k: int = 5) -> list[dict[str, Any]]:
     if requested_k == 0:
         return []
 
-    query_embedding = MODEL.encode([query], convert_to_numpy=True)
+    query_embedding = np.array(list(MODEL.embed([query])), dtype=np.float32)
     query_embedding = np.ascontiguousarray(query_embedding, dtype=np.float32)
     distances, positions = INDEX.search(query_embedding, requested_k)
     matched_ids = [PRODUCT_IDS[position] for position in positions[0] if position != -1]
