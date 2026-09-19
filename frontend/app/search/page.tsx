@@ -1,12 +1,12 @@
 // ROUTE: /search
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { searchProducts } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 
-export default function SearchPage() {
+function SearchPageInner() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
   const [query, setQuery] = useState(initialQuery);
@@ -64,5 +64,13 @@ export default function SearchPage() {
         ))}
       </ul>
     </main>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<p style={{ padding: 24 }}>Loading...</p>}>
+      <SearchPageInner />
+    </Suspense>
   );
 }
