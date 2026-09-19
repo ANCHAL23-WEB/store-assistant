@@ -8,6 +8,7 @@ from routes import analytics, dashboard, health, ocr, price_match, products, sea
 app = FastAPI(title="Retail Store Assistant API")
 
 # CORS restricted to the deployed Vercel frontend origin.
+app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://store-assistant-plum.vercel.app"],
     allow_credentials=False,
