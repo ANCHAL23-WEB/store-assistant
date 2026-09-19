@@ -1,5 +1,5 @@
 # Store Assistant — Semantic Retail Search & Analytics Platform
-**Live Demo:** _(coming soon — deployment in progress)_
+**Live Demo:** [store-assistant-plum.vercel.app](https://store-assistant-plum.vercel.app)
 
 A full-stack retail electronics store assistant designed for non-technical users. Customers and employees can search a 5,000-product catalog using natural language, barcode scanning, or voice — even when they don't know exact product names or specs. Built as a data analyst / technical analyst portfolio project 
 
@@ -72,7 +72,7 @@ Run this benchmark yourself: `python -m eval.benchmark_performance`
 | Frontend | Next.js 15.5.9, React 19, TypeScript, Tailwind CSS |
 | Backend | FastAPI (Python) |
 | Database | PostgreSQL 17 |
-| Search | sentence-transformers (`all-MiniLM-L6-v2`) + FAISS |
+| Search | fastembed (`all-MiniLM-L6-v2`, ONNX runtime) + FAISS |
 | OCR | pytesseract + Pillow |
 | Analytics | Streamlit + pandas |
 | Barcode | @zxing/browser |
