@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,39 @@ MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 # Maximum acceptable L2 distance for a match to be considered relevant.
 # Lower = stricter (fewer, more relevant results). Tune based on testing.
 MAX_DISTANCE = 1.2
+
+# When a query has a price constraint, we need to pull more candidates from
+# FAISS before filtering by price, since the nearest semantic matches often
+# aren't the cheapest ones. This is the multiplier applied to top_k.
+PRICE_FILTER_CANDIDATE_MULTIPLIER = 20
+
+# Matches phrases like "under 30000", "below 50k", "less than 20,000",
+# "under ₹30000", "max 40000". Captures the numeric value (with optional
+# comma separators) and an optional trailing 'k' for thousands.
+_PRICE_PATTERN = re.compile(
+    r"(?:under|below|less than|max|up to|within)\s*(?:rs\.?|₹|inr)?\s*"
+    r"([\d,]+)\s*(k)?",
+    re.IGNORECASE,
+)
+
+
+def _extract_max_price(query: str) -> float | None:
+    """Extract a maximum price constraint from natural-language query text.
+
+    Returns None if no price constraint is found. Handles "k" shorthand
+    (e.g. "under 30k" -> 30000).
+    """
+    match = _PRICE_PATTERN.search(query)
+    if not match:
+        return None
+    number_str, k_suffix = match.groups()
+    try:
+        value = float(number_str.replace(",", ""))
+    except ValueError:
+        return None
+    if k_suffix:
+        value *= 1000
+    return value
 
 
 def _load_database_url() -> str:
@@ -74,11 +108,20 @@ def search_products(query: str, top_k: int = 5) -> list[dict[str, Any]]:
     Results whose distance exceeds MAX_DISTANCE are dropped, since a bad
     match (e.g. searching for something not in the catalog) is worse than
     no match at all.
+
+    If the query contains a price constraint (e.g. "under 30000"), results
+    above that price are filtered out. To do this without losing relevant
+    cheaper items, a larger candidate pool is pulled from FAISS first.
     """
     if not query or not query.strip() or top_k < 1:
         return []
 
-    requested_k = min(top_k, INDEX.ntotal)
+    max_price = _extract_max_price(query)
+    candidate_k = top_k
+    if max_price is not None:
+        candidate_k = min(top_k * PRICE_FILTER_CANDIDATE_MULTIPLIER, INDEX.ntotal)
+
+    requested_k = min(candidate_k, INDEX.ntotal)
     if requested_k == 0:
         return []
 
@@ -96,13 +139,19 @@ def search_products(query: str, top_k: int = 5) -> list[dict[str, Any]]:
             continue
         product_id = PRODUCT_IDS[position]
         product = products.get(product_id)
-        if product:
-            results.append({
-                "product_id": product_id,
-                "distance": float(distance),
-                "name": product["name"],
-                "brand": product["brand"],
-                "price": float(product["price"]),
-                "specs": product["specs"],
-            })
+        if not product:
+            continue
+        price = float(product["price"])
+        if max_price is not None and price > max_price:
+            continue
+        results.append({
+            "product_id": product_id,
+            "distance": float(distance),
+            "name": product["name"],
+            "brand": product["brand"],
+            "price": price,
+            "specs": product["specs"],
+        })
+        if len(results) >= top_k:
+            break
     return results
