@@ -1,7 +1,7 @@
 """
 Search evaluation: compares keyword search, TF-IDF, and FAISS+embeddings
-on a labeled query set. Computes Precision@5, Recall@5, MRR, and latency
-for each method.
+on a manually judged relevance set. Computes Precision@5, Recall@5, MRR, and
+latency for each method.
 
 Usage:
     cd backend
@@ -9,6 +9,10 @@ Usage:
 
 Requires: DATABASE_URL in .env (project root or backend/), scikit-learn installed
 (pip install scikit-learn --break-system-packages)
+
+Relevance labels: eval/relevance_judgments.jsonl — each line is
+{"query_id": int, "query": str, "relevant_product_ids": [int, ...]},
+manually judged by inspecting live search results (see eval/METHODOLOGY.md).
 """
 
 import json
@@ -31,31 +35,27 @@ from retrieval.embed_products import build_product_description, fetch_products, 
 from retrieval.search import search_products as faiss_search
 
 EVAL_DIR = Path(__file__).resolve().parent
-QUERIES_PATH = EVAL_DIR / "test_queries.json"
+JUDGMENTS_PATH = EVAL_DIR / "relevance_judgments.jsonl"
 TOP_K = 5
 
 
 def load_queries() -> list[dict[str, Any]]:
-    data = json.loads(QUERIES_PATH.read_text(encoding="utf-8"))
-    return data["queries"]
+    """Load manually judged queries. Each has 'query' and 'relevant_product_ids'."""
+    queries = []
+    with open(JUDGMENTS_PATH, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                queries.append(json.loads(line))
+    return queries
 
 
 def load_products() -> list[dict[str, Any]]:
-    """Fetch all products with id, description text, and specs for relevance checks."""
+    """Fetch all products with id and description text (for keyword/TF-IDF search)."""
     products = fetch_products(_load_database_url())
     for p in products:
         p["description"] = build_product_description(p).lower()
     return products
-
-
-def get_relevant_ids(query_spec: dict, products: list[dict]) -> set[int]:
-    """A product is relevant if ALL required_keywords appear in its flattened description."""
-    keywords = [k.lower() for k in query_spec["required_keywords"]]
-    relevant = set()
-    for p in products:
-        if all(kw in p["description"] for kw in keywords):
-            relevant.add(p["id"])
-    return relevant
 
 
 def keyword_search(query: str, products: list[dict], top_k: int = TOP_K) -> list[int]:
@@ -109,13 +109,15 @@ def reciprocal_rank(retrieved: list[int], relevant: set[int]) -> float:
     return 0.0
 
 
-def evaluate_method(name: str, search_fn, queries: list[dict], products: list[dict]) -> dict:
+def evaluate_method(name: str, search_fn, queries: list[dict]) -> dict:
     precisions, recalls, rrs, latencies = [], [], [], []
     skipped = 0
 
     for q in queries:
-        relevant = get_relevant_ids(q, products)
+        relevant = set(q["relevant_product_ids"])
         if not relevant:
+            # No relevant products exist for this query (genuine no-result case).
+            # Skip from precision/recall/MRR averaging but still counted below.
             skipped += 1
             continue
 
@@ -145,7 +147,7 @@ def main():
     print(f"Loaded {len(products)} products.")
 
     queries = load_queries()
-    print(f"Loaded {len(queries)} test queries.")
+    print(f"Loaded {len(queries)} manually judged queries.")
 
     print("Building TF-IDF index...")
     tfidf_fn = tfidf_search_factory(products)
@@ -159,9 +161,9 @@ def main():
 
     print("\nEvaluating methods (this may take a minute for FAISS/embeddings)...\n")
     results = [
-        evaluate_method("Keyword Search", keyword_fn, queries, products),
-        evaluate_method("TF-IDF", tfidf_fn, queries, products),
-        evaluate_method("FAISS + Embeddings", faiss_fn, queries, products),
+        evaluate_method("Keyword Search", keyword_fn, queries),
+        evaluate_method("TF-IDF", tfidf_fn, queries),
+        evaluate_method("FAISS + Embeddings", faiss_fn, queries),
     ]
 
     # Print results table

@@ -7,10 +7,10 @@ A full-stack retail electronics store assistant designed for non-technical users
 
 ## Features
 
-- **Multi-modal search** — scan a barcode, speak a query, or type — all routes to the same intelligent search engine
+- **Multi-modal search** — scan a barcode for exact catalog lookup, or speak/type a query for semantic search powered by sentence embeddings + FAISS
 - **Feature-based search** — type loose, imprecise keywords (e.g. "5g 8gb ram" or "waterproof speaker") and get relevant matches by product specs, not just exact names, powered by sentence embeddings + FAISS
 - **Price-match tool** — customers can request a competitor price match; backend validates against a 15% max discount floor and logs the decision
-- **Analytics dashboard** — a Streamlit dashboard tracks top searched/purchased products, input method usage (scan/speak/type), and zero-result searches, to support real business decisions
+- **Analytics dashboard** — a Streamlit dashboard tracks searched products, search input method, search volume over time, and zero-result queries, to support real business decisions
 - **Grandmother-friendly UI** — large buttons, minimal text, built for non-technical users
 
  ## Screenshots
@@ -38,30 +38,28 @@ Out of 26 tracked searches, "phone" and "laptop" were the most searched terms (5
 
 ## Search Evaluation
 
-To validate the retrieval approach, three search methods were benchmarked against 40 labeled test queries (relevance defined by rule-based keyword matching against product specs — see `eval/test_queries.json` for methodology).
+To validate the retrieval approach, three search methods were benchmarked against 30 manually judged test queries spanning exact-spec, paraphrased, vague/category, price-constrained, and no-result cases (see `eval/relevance_judgments.jsonl` — each query's relevant product IDs were determined by manually inspecting live search results and applying a stated relevance rule per query).
 
-| Method | Precision@5 | Recall@5 | MRR | Avg Latency |
-|---|---|---|---|---|
-| Keyword Search | 0.96 | 0.031 | 0.975 | 3.1 ms |
-| TF-IDF | 0.90 | 0.029 | 0.90 | 1.3 ms |
-| FAISS + Embeddings | 0.85 | 0.024 | 0.87 | 55.4 ms |
+| Method | Precision@5 | Recall@5 | MRR |
+|---|---|---|---|
+| Keyword Search | 0.017 | 0.008 | 0.019 |
+| TF-IDF | 0.033 | 0.029 | 0.029 |
+| FAISS + Embeddings | **0.625** | **0.499** | **0.783** |
 
-**Note:** Keyword and TF-IDF score higher here because the ground-truth labels were themselves keyword-based, which favors exact-match methods. In practice, FAISS + embeddings is more robust to loose or imprecise phrasing (e.g. "phone with good camera" vs. exact spec terms), which keyword/TF-IDF methods cannot handle — a strength this keyword-based evaluation doesn't fully capture. Low recall across all methods reflects a large candidate pool per query relative to top-5 retrieval depth.
+**Findings:** FAISS + embeddings substantially outperforms both keyword and TF-IDF search on manually judged relevance — keyword and TF-IDF methods essentially fail to surface relevant products for natural-language queries, while semantic search returns relevant results in the top 5 for the majority of queries. Notable exceptions found during judging: price constraints (e.g. "laptop under 50000") are not currently enforced as filters, and a few queries mixing product categories (e.g. "phone with good camera") return the wrong category entirely — both are tracked as known limitations.
 
 Run the evaluation yourself: `python -m eval.evaluate_search` (from project root).
 
 
 ## Performance & Scalability
 
-Latency was benchmarked at increasing catalog sizes to test how each stage of the search pipeline scales.
+Latency was benchmarked on the current 5,000-product catalog to break down where time is spent in the search pipeline.
 
 | Catalog Size | Query Embedding | FAISS Search | DB Fetch | Total (end-to-end) |
 |---|---|---|---|---|
 | 5,000 | 13.16 ms | 0.70 ms | 47.70 ms | 61.57 ms |
-| 10,000 | 10.92 ms | 0.66 ms | 38.46 ms | 50.04 ms |
-| 50,000 | 27.37 ms | 13.46 ms | 69.65 ms | 110.47 ms |
 
-**Findings:** DB fetch dominates latency at smaller scales (up to 77%), while FAISS search time grows roughly linearly with catalog size (expected for `IndexFlatL2`, which does a brute-force scan). Even at 50,000 products — 10x the current catalog — end-to-end search stays under 120ms, well within acceptable UX limits for a search-as-you-type experience.
+**Findings:** DB fetch currently dominates latency (up to 77% of total time), while FAISS search itself is fast (`IndexFlatL2` brute-force scan over 5,000 vectors). At larger catalog sizes, FAISS search time would grow roughly linearly (expected for `IndexFlatL2`), and DB fetch could be optimized with indexing or batching — this hasn't yet been benchmarked at scale beyond the current catalog.
 
 Run this benchmark yourself: `python -m eval.benchmark_performance`
 
@@ -73,7 +71,6 @@ Run this benchmark yourself: `python -m eval.benchmark_performance`
 | Backend | FastAPI (Python) |
 | Database | PostgreSQL 17 |
 | Search | fastembed (`all-MiniLM-L6-v2`, ONNX runtime) + FAISS |
-| OCR | pytesseract + Pillow |
 | Analytics | Streamlit + pandas |
 | Barcode | @zxing/browser |
 | Voice | Web Speech API |
@@ -106,3 +103,13 @@ npm install
 
 ### 2. Set up the database
 Create a `.env` file in both the project root and `backend/` with:
+
+
+Copy the example env files and fill in your own PostgreSQL credentials:
+
+```bash
+cp .env.example .env
+cp backend/.env.example backend/.env
+```
+
+Each `.env` needs:

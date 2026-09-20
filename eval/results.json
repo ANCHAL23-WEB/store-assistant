@@ -1,29 +1,29 @@
 [
   {
     "method": "Keyword Search",
-    "precision@5": 0.96,
-    "recall@5": 0.031,
-    "mrr": 0.975,
-    "avg_latency_ms": 3.1,
-    "queries_evaluated": 20,
-    "queries_skipped_no_relevant": 20
+    "precision@5": 0.017,
+    "recall@5": 0.008,
+    "mrr": 0.019,
+    "avg_latency_ms": 6.9,
+    "queries_evaluated": 24,
+    "queries_skipped_no_relevant": 6
   },
   {
     "method": "TF-IDF",
-    "precision@5": 0.9,
+    "precision@5": 0.033,
     "recall@5": 0.029,
-    "mrr": 0.9,
-    "avg_latency_ms": 1.3,
-    "queries_evaluated": 20,
-    "queries_skipped_no_relevant": 20
+    "mrr": 0.029,
+    "avg_latency_ms": 2.5,
+    "queries_evaluated": 24,
+    "queries_skipped_no_relevant": 6
   },
   {
     "method": "FAISS + Embeddings",
-    "precision@5": 0.85,
-    "recall@5": 0.024,
-    "mrr": 0.87,
-    "avg_latency_ms": 55.4,
-    "queries_evaluated": 20,
-    "queries_skipped_no_relevant": 20
+    "precision@5": 0.625,
+    "recall@5": 0.499,
+    "mrr": 0.783,
+    "avg_latency_ms": 882.1,
+    "queries_evaluated": 24,
+    "queries_skipped_no_relevant": 6
   }
 ]
