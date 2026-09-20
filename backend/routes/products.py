@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from db import get_db
+from events import log_usage_event
 
 router = APIRouter()
 
@@ -28,6 +29,7 @@ def get_product_by_barcode(barcode: str, db: Session = Depends(get_db)) -> dict[
     """)
     product = db.execute(product_query, {"barcode": barcode}).first()
     if product is None:
+        log_usage_event(db, input_type="camera", query_text=barcode, matches=[])
         raise HTTPException(status_code=404, detail="No product found for that barcode")
 
     inventory_query = text("""
@@ -43,6 +45,12 @@ def get_product_by_barcode(barcode: str, db: Session = Depends(get_db)) -> dict[
         dict(row._mapping)
         for row in db.execute(inventory_query, {"product_id": result["product_id"]}).all()
     ]
+    log_usage_event(
+        db,
+        input_type="camera",
+        query_text=barcode,
+        matches=[{"product_id": result["product_id"]}],
+    )
     return result
 
 
@@ -88,7 +96,7 @@ def list_products(
                p.price, p.colors, p.specs, p.image_url
         FROM products AS p
         JOIN categories AS c ON c.category_id = p.category_id
-        WHERE (:category IS NULL OR LOWER(c.name) = LOWER(:category))
+                WHERE (:category IS NULL OR LOWER(c.name) = LOWER(:category))
         ORDER BY p.product_id
         LIMIT :limit
     """)

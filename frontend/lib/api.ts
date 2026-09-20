@@ -52,10 +52,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 export async function searchProducts(
   query: string,
   topK = 10,
+  inputType: "browse" | "voice" | "camera" = "browse",
 ): Promise<Product[]> {
   const url = new URL("/search", API_URL);
   url.searchParams.set("q", query);
   url.searchParams.set("top_k", String(topK));
+  url.searchParams.set("input_type", inputType);
 
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {

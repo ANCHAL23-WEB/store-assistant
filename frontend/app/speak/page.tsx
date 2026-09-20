@@ -55,7 +55,7 @@ export default function SpeakPage() {
 
   function handleSearch() {
     if (!transcript.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(transcript.trim())}`);
+    router.push(`/search?q=${encodeURIComponent(transcript.trim())}&input_type=voice`);
   }
 
   return (

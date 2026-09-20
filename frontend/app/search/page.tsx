@@ -9,20 +9,21 @@ import { useSearchParams } from "next/navigation";
 function SearchPageInner() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") ?? "";
+  const initialInputType = (searchParams.get("input_type") as "browse" | "voice" | "camera") ?? "browse";
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (initialQuery.trim()) {
-      void performSearch(initialQuery);
+      void performSearch(initialQuery, initialInputType);
     }
   }, []);
 
-  async function performSearch(q: string) {
+  async function performSearch(q: string, inputType: "browse" | "voice" | "camera" = "browse") {
     setLoading(true);
     try {
-      const data = await searchProducts(q);
+      const data = await searchProducts(q, 10, inputType);
       setResults(data);
     } catch (err) {
       console.error(err);
