@@ -98,8 +98,7 @@ export default function ScanPage() {
         </Link>
 
         <h1 className="mb-2 text-2xl font-bold">Scan the Barcode</h1>
-        <p className="mb-6 text-slate-300">Hold the product's barcode steady in front of the camera, or type it below.</p>
-
+        <p className="mb-6 text-slate-300">Hold the product&apos;s barcode steady in front of the camera, or type it below.</p>
         <div className="relative overflow-hidden rounded-2xl border-4 border-blue-500 bg-black">
           <video ref={videoRef} className="aspect-[4/3] w-full object-cover" muted playsInline />
           {status === "scanning" && (

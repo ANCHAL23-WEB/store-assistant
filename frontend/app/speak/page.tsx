@@ -5,35 +5,57 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+// Minimal shape of the browser SpeechRecognition API (not yet in standard TS lib types).
+interface SpeechRecognitionResultLike {
+  results: { [index: number]: { [index: number]: { transcript: string } } };
+}
+interface SpeechRecognitionErrorLike {
+  error: string;
+}
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  onresult: ((event: SpeechRecognitionResultLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorLike) => void) | null;
+  onend: (() => void) | null;
+}
+interface WindowWithSpeechRecognition extends Window {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+}
+
 export default function SpeakPage() {
   const router = useRouter();
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const [status, setStatus] = useState<"idle" | "listening" | "no-support" | "error">("idle");
   const [transcript, setTranscript] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const win = window as WindowWithSpeechRecognition;
+    const SpeechRecognitionCtor = win.SpeechRecognition || win.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
+    if (!SpeechRecognitionCtor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time browser-support check on mount, not a render-loop issue
       setStatus("no-support");
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionCtor();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-IN";
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const text = event.results[0][0].transcript;
       setTranscript(text);
       setStatus("idle");
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event) => {
       setStatus("error");
       setErrorMessage(`Could not hear you clearly (${event.error}). Please try again.`);
     };

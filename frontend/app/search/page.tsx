@@ -3,7 +3,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { searchProducts } from "@/lib/api";
+import { searchProducts, type Product } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 
 function SearchPageInner() {
@@ -11,13 +11,15 @@ function SearchPageInner() {
   const initialQuery = searchParams.get("q") ?? "";
   const initialInputType = (searchParams.get("input_type") as "browse" | "voice" | "camera") ?? "browse";
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<any[]>([]);
+ const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (initialQuery.trim()) {
       void performSearch(initialQuery, initialInputType);
     }
+    // Only run once on mount using the initial URL params, not on every query/inputType change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function performSearch(q: string, inputType: "browse" | "voice" | "camera" = "browse") {

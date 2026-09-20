@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 
 import {
   ProductDetail,
@@ -32,8 +33,9 @@ export default function ProductDetailPage() {
   const [isCheckingMatch, setIsCheckingMatch] = useState(false);
   const [priceMatchError, setPriceMatchError] = useState("");
 
-  useEffect(() => {
+   useEffect(() => {
     if (!Number.isFinite(productId)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicks off loading state for a data fetch triggered by productId change, not a render-loop issue
     setIsLoading(true);
     setError("");
     fetchProductById(productId)
@@ -89,12 +91,16 @@ export default function ProductDetailPage() {
 
         {product && (
           <>
-            {product.image_url && (
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="mb-6 h-64 w-full rounded-2xl border border-slate-200 object-cover sm:h-80"
-              />
+                        {product.image_url && (
+              <div className="relative mb-6 h-64 w-full overflow-hidden rounded-2xl border border-slate-200 sm:h-80">
+                <Image
+                  src={product.image_url}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
             )}
 
             <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-blue-700">
@@ -160,7 +166,7 @@ export default function ProductDetailPage() {
             <section className="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="mb-1 text-xl font-bold">Found it cheaper elsewhere?</h2>
               <p className="mb-4 text-sm text-slate-600">
-                Enter a competitor's price and we'll tell you the best price we can offer.
+                Enter a competitor&apos;s price and we&apos;ll tell you the best price we can offer.
               </p>
 
               <form onSubmit={handlePriceMatchSubmit} className="space-y-4">
