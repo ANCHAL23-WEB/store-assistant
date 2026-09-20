@@ -1,0 +1,6 @@
+{
+  "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_dim": 384,
+  "product_count": 5000,
+  "catalog_fingerprint": "c25ca38c5c0606cb372c46592c94610a6f06d495a5fcf799d2ff97ccc8529618"
+}

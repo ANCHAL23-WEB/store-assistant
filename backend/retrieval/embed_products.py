@@ -1,5 +1,6 @@
 """Build the product vector index used by the store assistant's text retrieval."""
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,7 @@ BACKEND_DIR = RETRIEVAL_DIR.parent
 PROJECT_ROOT = BACKEND_DIR.parent
 INDEX_PATH = RETRIEVAL_DIR / "product_index.faiss"
 PRODUCT_IDS_PATH = RETRIEVAL_DIR / "product_ids.json"
+INDEX_METADATA_PATH = RETRIEVAL_DIR / "index_metadata.json"
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 
@@ -66,8 +68,15 @@ def fetch_products(database_url: str) -> list[dict[str, Any]]:
             return [dict(row) for row in cursor.fetchall()]
 
 
+def compute_catalog_fingerprint(product_ids: list[int]) -> str:
+    """Deterministic hash of the sorted product ID set, used to detect a stale index."""
+    sorted_ids = sorted(product_ids)
+    payload = ",".join(str(pid) for pid in sorted_ids).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def main() -> None:
-    """Embed all products and persist the FAISS index and ID mapping."""
+    """Embed all products and persist the FAISS index, ID mapping, and metadata."""
     products = fetch_products(_load_database_url())
     if not products:
         raise RuntimeError("No products found. Add products before building the retrieval index.")
@@ -80,10 +89,20 @@ def main() -> None:
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
     faiss.write_index(index, str(INDEX_PATH))
-    PRODUCT_IDS_PATH.write_text(
-        json.dumps([product["id"] for product in products]), encoding="utf-8"
-    )
+
+    product_ids = [product["id"] for product in products]
+    PRODUCT_IDS_PATH.write_text(json.dumps(product_ids), encoding="utf-8")
+
+    metadata = {
+        "model_name": MODEL_NAME,
+        "embedding_dim": int(embeddings.shape[1]),
+        "product_count": len(products),
+        "catalog_fingerprint": compute_catalog_fingerprint(product_ids),
+    }
+    INDEX_METADATA_PATH.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+
     print(f"Indexed {len(products)} products in {INDEX_PATH}")
+    print(f"Metadata written to {INDEX_METADATA_PATH}")
 
 
 if __name__ == "__main__":

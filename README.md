@@ -79,6 +79,10 @@ Run this benchmark yourself: `python -m eval.benchmark_performance`
 
 Frontend never talks to the database directly — all requests go through the FastAPI backend. Search logic (embedding + FAISS lookup) is isolated in its own module so it can be swapped or upgraded independently. See `ARCHITECTURE.md` for details.
 
+### Search index freshness
+
+The FAISS search index is built offline (`python backend/retrieval/embed_products.py`) and stored as a binary file, so it can silently fall out of sync if the catalog changes without a rebuild. `GET /health/index` compares the live product count against the count recorded at index-build time and reports `"fresh"` or `"stale"` — rebuild the index if it reports stale.
+
 ## Getting Started
 
 ### Prerequisites
