@@ -85,7 +85,7 @@ Frontend never talks to the database directly — all requests go through the Fa
 - Node.js 18+
 - Python 3.11+
 - PostgreSQL 17
-- Tesseract OCR (for image-based search)
+
 
 ### 1. Clone and install
 ```bash
