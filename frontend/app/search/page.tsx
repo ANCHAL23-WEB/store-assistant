@@ -1,4 +1,4 @@
-// ROUTE: /search
+﻿// ROUTE: /search
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -11,8 +11,10 @@ function SearchPageInner() {
   const initialQuery = searchParams.get("q") ?? "";
   const initialInputType = (searchParams.get("input_type") as "browse" | "voice" | "camera") ?? "browse";
   const [query, setQuery] = useState(initialQuery);
- const [results, setResults] = useState<Product[]>([]);
+  const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastSearch, setLastSearch] = useState<{ q: string; inputType: "browse" | "voice" | "camera" } | null>(null);
 
   useEffect(() => {
     if (initialQuery.trim()) {
@@ -24,11 +26,15 @@ function SearchPageInner() {
 
   async function performSearch(q: string, inputType: "browse" | "voice" | "camera" = "browse") {
     setLoading(true);
+    setError(null);
+    setLastSearch({ q, inputType });
     try {
       const data = await searchProducts(q, 10, inputType);
       setResults(data);
     } catch (err) {
       console.error(err);
+      setResults([]);
+      setError("Something went wrong while searching. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -38,6 +44,12 @@ function SearchPageInner() {
     e.preventDefault();
     if (!query.trim()) return;
     void performSearch(query);
+  }
+
+  function handleRetry() {
+    if (lastSearch) {
+      void performSearch(lastSearch.q, lastSearch.inputType);
+    }
   }
 
   return (
@@ -52,14 +64,26 @@ function SearchPageInner() {
         />
         <button type="submit" style={{ padding: "10px 20px" }}>Search</button>
       </form>
-{loading && <p>Searching...</p>}
 
-      {!loading && results.length === 0 && query.trim() && (
+      {loading && <p>Searching...</p>}
+
+      {!loading && error && (
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ color: "#b91c1c" }}>{error}</p>
+          <button
+            onClick={handleRetry}
+            style={{ padding: "8px 16px", marginTop: 8, cursor: "pointer" }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && results.length === 0 && query.trim() && (
         <p style={{ color: "#666" }}>No matching products found. This item may not be available in our store.</p>
       )}
 
       <ul style={{ listStyle: "none", padding: 0 }}>
-      
         {results.map((p) => (
           <li key={p.product_id} style={{ marginBottom: 12 }}>
             <Link href={`/product/${p.product_id}`}>{p.name}</Link>
