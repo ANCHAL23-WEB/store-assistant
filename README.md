@@ -58,13 +58,98 @@ Create a `.env` file in both the project root and `backend/` with:
 
 
 Copy the example env files and fill in your own PostgreSQL credentials:
+Each `.env` needs:
+
+
+### 3. Create the database
+
+Make sure PostgreSQL is running locally, then create the database:
 
 ```bash
-cp .env.example .env
-cp backend/.env.example backend/.env
+createdb store_assistant
 ```
 
-Each `.env` needs:
+### 4. Run the schema and migrations
+
+```bash
+psql -d store_assistant -f db/schema.sql
+psql -d store_assistant -f db/migrations/001_create_price_match_events.sql
+psql -d store_assistant -f db/migrations/002_add_barcode.sql
+```
+
+### 5. Seed the catalog
+
+```bash
+cd backend
+python ../db/seed_data.py
+```
+
+This populates the 5,000-product synthetic catalog.
+
+### 6. Build the search index
+
+```bash
+python retrieval/embed_products.py
+```
+
+This generates `product_index.faiss` and `product_ids.json` from the seeded catalog. Re-run this any time the catalog changes.
+
+### 7. Run the backend
+
+```bash
+python -m uvicorn main:app --reload
+```
+
+Backend runs at `http://localhost:8000`.
+
+### 8. Run the frontend
+
+In a new terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Frontend runs at `http://localhost:3000`.
+
+### 9. (Optional) Run the analytics dashboard
+
+In a new terminal:
+
+```bash
+cd dashboard
+pip install -r requirements.txt --break-system-packages
+python -m streamlit run app.py
+```
+
+Dashboard runs at `http://localhost:8501`.
+
+### Alternative: run everything with Docker
+
+Steps 3-9 can be skipped by using Docker Compose instead, which handles the database, backend, and frontend in one command:
+
+```bash
+docker compose up --build
+```
+
+Note: this starts the containers but does not seed the catalog or build the search index automatically - run steps 5 and 6 once against the running containers the first time, using `docker compose exec backend <command>`.
+
+To also run the analytics dashboard:
+
+```bash
+docker compose --profile full up --build
+```
+
+### Running tests
+
+```bash
+cd backend
+python -m pytest ../tests/unit -v
+```
+
+Integration tests require a real local database and are not run in CI - see `tests/integration/` for local smoke tests against a live database.
+
 ## Tech Stack
 
 | Layer | Technology |
