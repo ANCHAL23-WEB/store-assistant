@@ -1,5 +1,4 @@
-@"
-"""Streamlit analytics dashboard for the retail store assistant."""
+﻿"""Streamlit analytics dashboard for the retail store assistant."""
 
 from datetime import datetime
 from typing import Any
@@ -100,7 +99,7 @@ def show_zero_result_searches(searches: list[dict[str, Any]] | None) -> None:
 
 def main() -> None:
     st.set_page_config(page_title="Retail Store Assistant Analytics", layout="wide")
-    st.title("Retail Store Assistant — Analytics Dashboard")
+    st.title("Retail Store Assistant - Analytics Dashboard")
 
     if st.button("Refresh data", type="primary"):
         fetch_dashboard_data.clear()
@@ -127,4 +126,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-"@ | Out-File -FilePath dashboard\app.py -Encoding utf8
