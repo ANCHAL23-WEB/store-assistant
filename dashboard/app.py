@@ -1,13 +1,16 @@
+@"
 """Streamlit analytics dashboard for the retail store assistant."""
 
 from datetime import datetime
 from typing import Any
 
 import matplotlib.pyplot as plt
+
+import os
 import requests
 import streamlit as st
 
-API_BASE_URL = "http://127.0.0.1:8000"
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 
 @st.cache_data(ttl=60)
@@ -124,3 +127,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+"@ | Out-File -FilePath dashboard\app.py -Encoding utf8
