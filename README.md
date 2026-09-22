@@ -1,17 +1,17 @@
-# Store Assistant — Semantic Retail Search & Analytics Platform
+﻿# Store Assistant - Semantic Retail Search & Analytics Platform
 **Live Demo:** [store-assistant-plum.vercel.app](https://store-assistant-plum.vercel.app)
 
-A full-stack retail electronics store assistant designed for non-technical users. Customers and employees can search a 5,000-product catalog using natural language, barcode scanning, or voice — even when they don't know exact product names or specs. Built as a data analyst / technical analyst portfolio project 
+A full-stack retail electronics store assistant designed for non-technical users. Customers and employees can search a 5,000-product catalog using natural language, barcode scanning, or voice - even when they don't know exact product names or specs. Built as a data analyst / technical analyst portfolio project 
 
-> **Note:** The 5,000-product catalog is synthetically generated (via Faker + a seed script) for demonstration purposes — not scraped or real store inventory.
+> **Note:** The 5,000-product catalog is synthetically generated (via Faker + a seed script) for demonstration purposes - not scraped or real store inventory.
 
 ## Features
 
-- **Multi-modal search** — scan a barcode for exact catalog lookup, or speak/type a query for semantic search powered by sentence embeddings + FAISS
-- **Feature-based search** — type loose, imprecise keywords (e.g. "5g 8gb ram" or "waterproof speaker") and get relevant matches by product specs, not just exact names, powered by sentence embeddings + FAISS
-- **Price-match tool** — customers can request a competitor price match; backend validates against a 15% max discount floor and logs the decision
-- **Analytics dashboard** — a Streamlit dashboard tracks searched products, search input method, search volume over time, and zero-result queries, to support real business decisions
-- **Grandmother-friendly UI** — large buttons, minimal text, built for non-technical users
+- **Multi-modal search** - scan a barcode for exact catalog lookup, or speak/type a query for semantic search powered by sentence embeddings + FAISS
+- **Feature-based search** - type loose, imprecise keywords (e.g. "5g 8gb ram" or "waterproof speaker") and get relevant matches by product specs, not just exact names, powered by sentence embeddings + FAISS
+- **Price-match tool** - customers can request a competitor price match; backend validates against a 15% max discount floor and logs the decision
+- **Analytics dashboard** - a Streamlit dashboard tracks searched products, search input method, search volume over time, and zero-result queries, to support real business decisions
+- **Simple, low-friction UI** - large buttons and minimal text, aimed at reducing typing for in-store staff and customers (not formally usability-tested against accessibility standards)
 
  ## Screenshots
 
@@ -33,12 +33,12 @@ A full-stack retail electronics store assistant designed for non-technical users
 
 ### Business Insight Example
 
-Out of 26 tracked searches, "phone" and "laptop" were the most searched terms (5 each), followed by "washing machine" (4) — indicating strong customer interest in electronics and appliances. Zero-result searches were 0% in this sample, suggesting the semantic search successfully matches customer queries to catalog items even with varied phrasing.
+Out of 26 tracked searches, "phone" and "laptop" were the most searched terms (5 each), followed by "washing machine" (4) - indicating strong customer interest in electronics and appliances. Zero-result searches were 0% in this sample, suggesting the semantic search successfully matches customer queries to catalog items even with varied phrasing.
 
 
 ## Search Evaluation
 
-To validate the retrieval approach, three search methods were benchmarked against 30 manually judged test queries spanning exact-spec, paraphrased, vague/category, price-constrained, and no-result cases (see `eval/relevance_judgments.jsonl` — each query's relevant product IDs were determined by manually inspecting live search results and applying a stated relevance rule per query).
+To validate the retrieval approach, three search methods were benchmarked against 30 manually judged test queries spanning exact-spec, paraphrased, vague/category, price-constrained, and no-result cases (see `eval/relevance_judgments.jsonl` - each query's relevant product IDs were determined by manually inspecting live search results and applying a stated relevance rule per query).
 
 | Method | Precision@5 | Recall@5 | MRR |
 |---|---|---|---|
@@ -46,7 +46,7 @@ To validate the retrieval approach, three search methods were benchmarked agains
 | TF-IDF | 0.033 | 0.029 | 0.029 |
 | FAISS + Embeddings | **0.625** | **0.499** | **0.783** |
 
-**Findings:** FAISS + embeddings substantially outperforms both keyword and TF-IDF search on manually judged relevance — keyword and TF-IDF methods essentially fail to surface relevant products for natural-language queries, while semantic search returns relevant results in the top 5 for the majority of queries. Notable exceptions found during judging: price constraints (e.g. "laptop under 50000") are not currently enforced as filters, and a few queries mixing product categories (e.g. "phone with good camera") return the wrong category entirely — both are tracked as known limitations.
+**Findings:** FAISS + embeddings substantially outperforms both keyword and TF-IDF search on manually judged relevance - keyword and TF-IDF methods essentially fail to surface relevant products for natural-language queries, while semantic search returns relevant results in the top 5 for the majority of queries. Notable exceptions found during judging: price constraints (e.g. "laptop under 50000") are not currently enforced as filters, and a few queries mixing product categories (e.g. "phone with good camera") return the wrong category entirely - both are tracked as known limitations.
 
 Run the evaluation yourself: `python -m eval.evaluate_search` (from project root).
 
@@ -59,7 +59,7 @@ Latency was benchmarked on the current 5,000-product catalog to break down where
 |---|---|---|---|---|
 | 5,000 | 13.16 ms | 0.70 ms | 47.70 ms | 61.57 ms |
 
-**Findings:** DB fetch currently dominates latency (up to 77% of total time), while FAISS search itself is fast (`IndexFlatL2` brute-force scan over 5,000 vectors). At larger catalog sizes, FAISS search time would grow roughly linearly (expected for `IndexFlatL2`), and DB fetch could be optimized with indexing or batching — this hasn't yet been benchmarked at scale beyond the current catalog.
+**Findings:** DB fetch currently dominates latency (up to 77% of total time), while FAISS search itself is fast (`IndexFlatL2` brute-force scan over 5,000 vectors). At larger catalog sizes, FAISS search time would grow roughly linearly (expected for `IndexFlatL2`), and DB fetch could be optimized with indexing or batching - this hasn't yet been benchmarked at scale beyond the current catalog.
 
 Run this benchmark yourself: `python -m eval.benchmark_performance`
 
@@ -77,11 +77,11 @@ Run this benchmark yourself: `python -m eval.benchmark_performance`
 
 ## Architecture
 
-Frontend never talks to the database directly — all requests go through the FastAPI backend. Search logic (embedding + FAISS lookup) is isolated in its own module so it can be swapped or upgraded independently. See `ARCHITECTURE.md` for details.
+Frontend never talks to the database directly - all requests go through the FastAPI backend. Search logic (embedding + FAISS lookup) is isolated in its own module so it can be swapped or upgraded independently. See `ARCHITECTURE.md` for details.
 
 ### Search index freshness
 
-The FAISS search index is built offline (`python backend/retrieval/embed_products.py`) and stored as a binary file, so it can silently fall out of sync if the catalog changes without a rebuild. `GET /health/index` compares the live product count against the count recorded at index-build time and reports `"fresh"` or `"stale"` — rebuild the index if it reports stale.
+The FAISS search index is built offline (`python backend/retrieval/embed_products.py`) and stored as a binary file, so it can silently fall out of sync if the catalog changes without a rebuild. `GET /health/index` compares the live product count against the count recorded at index-build time and reports `"fresh"` or `"stale"` - rebuild the index if it reports stale.
 
 ## Getting Started
 
@@ -136,3 +136,6 @@ called out here rather than hidden:
   take up to a minute to wake up after periods of inactivity (cold start).
 - **Single-region deployment**: no multi-region failover or load balancing;
   this is a single-instance demo deployment.
+
+
+
