@@ -31,58 +31,6 @@ A full-stack retail electronics store assistant designed for non-technical users
 ![Dashboard Charts](04-dashboard-charts.jpeg)
 
 
-### Business Insight Example
-
-Out of 26 tracked searches, "phone" and "laptop" were the most searched terms (5 each), followed by "washing machine" (4) - indicating strong customer interest in electronics and appliances. Zero-result searches were 0% in this sample, suggesting the semantic search successfully matches customer queries to catalog items even with varied phrasing.
-
-
-## Search Evaluation
-
-To validate the retrieval approach, three search methods were benchmarked against 30 manually judged test queries spanning exact-spec, paraphrased, vague/category, price-constrained, and no-result cases (see `eval/relevance_judgments.jsonl` - each query's relevant product IDs were determined by manually inspecting live search results and applying a stated relevance rule per query).
-
-| Method | Precision@5 | Recall@5 | MRR |
-|---|---|---|---|
-| Keyword Search | 0.017 | 0.008 | 0.019 |
-| TF-IDF | 0.033 | 0.029 | 0.029 |
-| FAISS + Embeddings | **0.625** | **0.499** | **0.783** |
-
-**Findings:** FAISS + embeddings substantially outperforms both keyword and TF-IDF search on manually judged relevance - keyword and TF-IDF methods essentially fail to surface relevant products for natural-language queries, while semantic search returns relevant results in the top 5 for the majority of queries. Notable exceptions found during judging: price constraints (e.g. "laptop under 50000") are not currently enforced as filters, and a few queries mixing product categories (e.g. "phone with good camera") return the wrong category entirely - both are tracked as known limitations.
-
-Run the evaluation yourself: `python -m eval.evaluate_search` (from project root).
-
-
-## Performance & Scalability
-
-Latency was benchmarked on the current 5,000-product catalog to break down where time is spent in the search pipeline.
-
-| Catalog Size | Query Embedding | FAISS Search | DB Fetch | Total (end-to-end) |
-|---|---|---|---|---|
-| 5,000 | 13.16 ms | 0.70 ms | 47.70 ms | 61.57 ms |
-
-**Findings:** DB fetch currently dominates latency (up to 77% of total time), while FAISS search itself is fast (`IndexFlatL2` brute-force scan over 5,000 vectors). At larger catalog sizes, FAISS search time would grow roughly linearly (expected for `IndexFlatL2`), and DB fetch could be optimized with indexing or batching - this hasn't yet been benchmarked at scale beyond the current catalog.
-
-Run this benchmark yourself: `python -m eval.benchmark_performance`
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 15.5.9, React 19, TypeScript, Tailwind CSS |
-| Backend | FastAPI (Python) |
-| Database | PostgreSQL 17 |
-| Search | fastembed (`all-MiniLM-L6-v2`, ONNX runtime) + FAISS |
-| Analytics | Streamlit + pandas |
-| Barcode | @zxing/browser |
-| Voice | Web Speech API |
-
-## Architecture
-
-Frontend never talks to the database directly - all requests go through the FastAPI backend. Search logic (embedding + FAISS lookup) is isolated in its own module so it can be swapped or upgraded independently. See `ARCHITECTURE.md` for details.
-
-### Search index freshness
-
-The FAISS search index is built offline (`python backend/retrieval/embed_products.py`) and stored as a binary file, so it can silently fall out of sync if the catalog changes without a rebuild. `GET /health/index` compares the live product count against the count recorded at index-build time and reports `"fresh"` or `"stale"` - rebuild the index if it reports stale.
-
 ## Getting Started
 
 ### Prerequisites
@@ -117,6 +65,58 @@ cp backend/.env.example backend/.env
 ```
 
 Each `.env` needs:
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 15.5.9, React 19, TypeScript, Tailwind CSS |
+| Backend | FastAPI (Python) |
+| Database | PostgreSQL 17 |
+| Search | fastembed (`all-MiniLM-L6-v2`, ONNX runtime) + FAISS |
+| Analytics | Streamlit + pandas |
+| Barcode | @zxing/browser |
+| Voice | Web Speech API |
+
+## Architecture
+
+Frontend never talks to the database directly - all requests go through the FastAPI backend. Search logic (embedding + FAISS lookup) is isolated in its own module so it can be swapped or upgraded independently. See `ARCHITECTURE.md` for details.
+
+### Search index freshness
+
+The FAISS search index is built offline (`python backend/retrieval/embed_products.py`) and stored as a binary file, so it can silently fall out of sync if the catalog changes without a rebuild. `GET /health/index` compares the live product count against the count recorded at index-build time and reports `"fresh"` or `"stale"` - rebuild the index if it reports stale.
+
+## Search Evaluation
+
+To validate the retrieval approach, three search methods were benchmarked against 30 manually judged test queries spanning exact-spec, paraphrased, vague/category, price-constrained, and no-result cases (see `eval/relevance_judgments.jsonl` - each query's relevant product IDs were determined by manually inspecting live search results and applying a stated relevance rule per query).
+
+| Method | Precision@5 | Recall@5 | MRR |
+|---|---|---|---|
+| Keyword Search | 0.017 | 0.008 | 0.019 |
+| TF-IDF | 0.033 | 0.029 | 0.029 |
+| FAISS + Embeddings | **0.625** | **0.499** | **0.783** |
+
+**Findings:** FAISS + embeddings substantially outperforms both keyword and TF-IDF search on manually judged relevance - keyword and TF-IDF methods essentially fail to surface relevant products for natural-language queries, while semantic search returns relevant results in the top 5 for the majority of queries. Notable exceptions found during judging: price constraints (e.g. "laptop under 50000") are not currently enforced as filters, and a few queries mixing product categories (e.g. "phone with good camera") return the wrong category entirely - both are tracked as known limitations.
+
+Run the evaluation yourself: `python -m eval.evaluate_search` (from project root).
+
+
+## Performance & Scalability
+
+Latency was benchmarked on the current 5,000-product catalog to break down where time is spent in the search pipeline.
+
+| Catalog Size | Query Embedding | FAISS Search | DB Fetch | Total (end-to-end) |
+|---|---|---|---|---|
+| 5,000 | 13.16 ms | 0.70 ms | 47.70 ms | 61.57 ms |
+
+**Findings:** DB fetch currently dominates latency (up to 77% of total time), while FAISS search itself is fast (`IndexFlatL2` brute-force scan over 5,000 vectors). At larger catalog sizes, FAISS search time would grow roughly linearly (expected for `IndexFlatL2`), and DB fetch could be optimized with indexing or batching - this hasn't yet been benchmarked at scale beyond the current catalog.
+
+Run this benchmark yourself: `python -m eval.benchmark_performance`
+
+## Business Insight Example
+
+Out of 26 tracked searches, "phone" and "laptop" were the most searched terms (5 each), followed by "washing machine" (4) - indicating strong customer interest in electronics and appliances. Zero-result searches were 0% in this sample, suggesting the semantic search successfully matches customer queries to catalog items even with varied phrasing.
+
+
 ## Known Limitations
 
 This is a portfolio/demo project, not a production system. Some known gaps,
@@ -136,6 +136,7 @@ called out here rather than hidden:
   take up to a minute to wake up after periods of inactivity (cold start).
 - **Single-region deployment**: no multi-region failover or load balancing;
   this is a single-instance demo deployment.
+
 
 
 
