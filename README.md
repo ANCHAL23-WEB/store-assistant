@@ -117,3 +117,22 @@ cp backend/.env.example backend/.env
 ```
 
 Each `.env` needs:
+## Known Limitations
+
+This is a portfolio/demo project, not a production system. Some known gaps,
+called out here rather than hidden:
+
+- **Synthetic catalog**: the 5,000-product catalog is synthetically
+  generated, not real inventory data.
+- **CORS**: the deployed backend's CORS is currently open; a production
+  deployment would restrict this further and add proper authentication.
+- **No authentication**: there is no user login or role-based access control
+  - anyone with the API URL can call every endpoint.
+- **Evaluation scale**: the search evaluation framework (Precision@5,
+  Recall@5, MRR) was run on 30 manually-judged queries, not a large-scale
+  benchmark - see the Search Evaluation section for the full methodology
+  and numbers.
+- **Free-tier hosting**: the live demo runs on Render's free tier, which can
+  take up to a minute to wake up after periods of inactivity (cold start).
+- **Single-region deployment**: no multi-region failover or load balancing;
+  this is a single-instance demo deployment.
