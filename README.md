@@ -180,7 +180,7 @@ To validate the retrieval approach, three search methods were benchmarked agains
 | TF-IDF | 0.033 | 0.029 | 0.029 |
 | FAISS + Embeddings | **0.625** | **0.499** | **0.783** |
 
-**Findings:** FAISS + embeddings substantially outperforms both keyword and TF-IDF search on manually judged relevance - keyword and TF-IDF methods essentially fail to surface relevant products for natural-language queries, while semantic search returns relevant results in the top 5 for the majority of queries. Notable exceptions found during judging: price constraints (e.g. "laptop under 50000") are not currently enforced as filters, and a few queries mixing product categories (e.g. "phone with good camera") return the wrong category entirely - both are tracked as known limitations.
+**Findings:** FAISS + embeddings substantially outperforms both keyword and TF-IDF search on manually judged relevance - keyword and TF-IDF methods essentially fail to surface relevant products for natural-language queries, while semantic search returns relevant results in the top 5 for the majority of queries. Notable exceptions found during judging: a few queries mixing product categories (e.g. "phone with good camera") return the wrong category entirely - tracked as a known limitation. Price constraints such as "under 30,000" are supported through post-retrieval filtering; more complex constraints and category disambiguation remain known limitations.
 
 Run the evaluation yourself: `python -m eval.evaluate_search` (from project root).
 
@@ -191,9 +191,9 @@ Latency was benchmarked on the current 5,000-product catalog to break down where
 
 | Catalog Size | Query Embedding | FAISS Search | DB Fetch | Total (end-to-end) |
 |---|---|---|---|---|
-| 5,000 | 13.16 ms | 0.70 ms | 47.70 ms | 61.57 ms |
+| 5,000 | 43.52 ms | 1.18 ms | 832.01 ms | 876.71 ms |
 
-**Findings:** DB fetch currently dominates latency (up to 77% of total time), while FAISS search itself is fast (`IndexFlatL2` brute-force scan over 5,000 vectors). At larger catalog sizes, FAISS search time would grow roughly linearly (expected for `IndexFlatL2`), and DB fetch could be optimized with indexing or batching - this hasn't yet been benchmarked at scale beyond the current catalog.
+**Findings:** DB fetch dominates latency (94.9% of total time) - each call opens a fresh psycopg2 connection with no pooling, which is the main cost, not the query itself. FAISS search is fast (1.18 ms, `IndexFlatL2` brute-force scan over 5,000 vectors). Query embedding (FastEmbed) takes 43.52 ms. At larger catalog sizes, FAISS search time would grow roughly linearly (expected for `IndexFlatL2`); DB fetch latency is a connection-pooling problem, not a query-optimization one, and would need to be addressed before this scales.
 
 Run this benchmark yourself: `python -m eval.benchmark_performance`
 
@@ -221,6 +221,10 @@ called out here rather than hidden:
   take up to a minute to wake up after periods of inactivity (cold start).
 - **Single-region deployment**: no multi-region failover or load balancing;
   this is a single-instance demo deployment.
+
+
+
+
 
 
 

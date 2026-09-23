@@ -1,4 +1,4 @@
-"""
+﻿"""
 Performance benchmark: measures latency breakdown (embedding, FAISS search,
 DB fetch) and memory usage at the current product catalog scale.
 
@@ -30,11 +30,17 @@ SAMPLE_QUERIES = [
 ]
 
 
+def embed_query(query: str) -> np.ndarray:
+    """Embed one query using FastEmbed, returning a (1, dim) float32 array."""
+    embedding = np.array(list(MODEL.embed([query])), dtype=np.float32)
+    return np.ascontiguousarray(embedding, dtype=np.float32)
+
+
 def benchmark_embedding(query: str, n_runs: int = 10) -> float:
     times = []
     for _ in range(n_runs):
         start = time.perf_counter()
-        MODEL.encode([query], convert_to_numpy=True)
+        embed_query(query)
         times.append(time.perf_counter() - start)
     return float(np.mean(times)) * 1000  # ms
 
@@ -80,7 +86,7 @@ def main():
         emb_time = benchmark_embedding(query)
         embedding_times.append(emb_time)
 
-        query_embedding = MODEL.encode([query], convert_to_numpy=True)
+        query_embedding = embed_query(query)
         faiss_time = benchmark_faiss_search(query_embedding)
         faiss_times.append(faiss_time)
 
