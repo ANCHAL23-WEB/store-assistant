@@ -41,11 +41,6 @@ export interface PriceMatchResponse {
   reason: string;
 }
 
-export interface ImageSearchResponse {
-  products: Product[];
-  message?: string;
-}
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const REQUEST_TIMEOUT_MS = 15000;
 
@@ -83,25 +78,6 @@ export async function searchProducts(
   }
 
   return response.json() as Promise<Product[]>;
-}
-
-/** Upload an image for OCR, then return products matching its extracted text. */
-export async function searchProductsByImage(image: File): Promise<ImageSearchResponse> {
-  const formData = new FormData();
-  formData.append("image", image);
-
-  const response = await fetchWithTimeout(new URL("/ocr/search", API_URL), {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error(`Image search request failed with status ${response.status}`);
-  }
-
-  const payload: Product[] | { results: Product[]; message?: string } = await response.json();
-  return Array.isArray(payload)
-    ? { products: payload }
-    : { products: payload.results, message: payload.message };
 }
 
 /** Fetch full product detail (price, specs, per-store inventory) by product ID. */
