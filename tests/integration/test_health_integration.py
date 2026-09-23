@@ -1,4 +1,9 @@
-"""Integration smoke tests - hit real endpoints against a live Postgres DB."""
+﻿"""Integration smoke tests - hit real endpoints against a live Postgres DB.
+
+These are LOCAL/MANUAL tests only, not run in CI. They require a real
+DATABASE_URL pointing at a seeded database and are skipped automatically
+(see tests/integration/conftest.py) when one is not configured.
+"""
 
 import pytest
 
