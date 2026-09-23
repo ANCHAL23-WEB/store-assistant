@@ -18,21 +18,39 @@ services:
       timeout: 5s
       retries: 10
 
+  init:
+    build:
+      context: .
+      dockerfile: docker/init.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/store_assistant
+    volumes:
+      - ./backend/retrieval:/app/backend/retrieval
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     build: ./backend
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/store_assistant
+      CORS_ORIGINS: http://localhost:3000,https://store-assistant-plum.vercel.app
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      init:
+        condition: service_completed_successfully
     volumes:
       - ./backend:/app
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
@@ -40,10 +58,6 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
 
   dashboard:
     build: ./dashboard
