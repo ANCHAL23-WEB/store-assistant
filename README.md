@@ -1,4 +1,4 @@
-﻿# Store Assistant - Semantic Retail Search & Analytics Platform
+# Store Assistant - Semantic Retail Search & Analytics Platform
 **Live Demo:** [store-assistant-plum.vercel.app](https://store-assistant-plum.vercel.app)
 
 A full-stack retail electronics store assistant designed for non-technical users. Customers and employees can search a 5,000-product catalog using natural language, barcode scanning, or voice - even when they don't know exact product names or specs. Built as a data analyst / technical analyst portfolio project 
@@ -133,7 +133,7 @@ Steps 3-9 can be skipped by using Docker Compose instead, which handles the data
 docker compose up --build
 ```
 
-Note: this starts the containers but does not seed the catalog or build the search index automatically - run steps 5 and 6 once against the running containers the first time, using `docker compose exec backend <command>`.
+Note: the containers auto-seed the catalog and build the search index on first run via an init service - no manual steps needed. Subsequent runs skip re-seeding if the catalog already exists.
 
 To also run the analytics dashboard:
 
@@ -209,8 +209,7 @@ called out here rather than hidden:
 
 - **Synthetic catalog**: the 5,000-product catalog is synthetically
   generated, not real inventory data.
-- **CORS**: the deployed backend's CORS is currently open; a production
-  deployment would restrict this further and add proper authentication.
+- **CORS**: restricted via a `CORS_ORIGINS` environment variable, locked to the deployed Vercel origin in production.
 - **No authentication**: there is no user login or role-based access control
   - anyone with the API URL can call every endpoint.
 - **Evaluation scale**: the search evaluation framework (Precision@5,
